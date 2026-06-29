@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HyperVX", "src\driver\Hyper
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HvClient", "src\client\HvClient.vcxproj", "{A7E4B231-D2C6-4E47-B195-1ECFAE385C0F}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KdMapper", "tools\kdmapper\KdMapper.vcxproj", "{B8D2E4A1-7F3C-4A5B-8E92-C1D4F6A89B23}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,10 @@ Global
 		{A7E4B231-D2C6-4E47-B195-1ECFAE385C0F}.Debug|x64.Build.0 = Debug|x64
 		{A7E4B231-D2C6-4E47-B195-1ECFAE385C0F}.Release|x64.ActiveCfg = Release|x64
 		{A7E4B231-D2C6-4E47-B195-1ECFAE385C0F}.Release|x64.Build.0 = Release|x64
+		{B8D2E4A1-7F3C-4A5B-8E92-C1D4F6A89B23}.Debug|x64.ActiveCfg = Debug|x64
+		{B8D2E4A1-7F3C-4A5B-8E92-C1D4F6A89B23}.Debug|x64.Build.0 = Debug|x64
+		{B8D2E4A1-7F3C-4A5B-8E92-C1D4F6A89B23}.Release|x64.ActiveCfg = Release|x64
+		{B8D2E4A1-7F3C-4A5B-8E92-C1D4F6A89B23}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
