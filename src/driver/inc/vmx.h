@@ -82,6 +82,9 @@
 #define VMCS_CTRL_TSC_OFFSET            0x2010
 #define VMCS_CTRL_EPT_POINTER           0x201A
 
+/* --- 64-bit Read-only --- */
+#define VMCS_GUEST_PHYSICAL_ADDR        0x2400
+
 /* --- 64-bit Guest State --- */
 #define VMCS_GUEST_VMCS_LINK            0x2800
 #define VMCS_GUEST_DEBUGCTL             0x2802
@@ -110,6 +113,7 @@
 #define VMCS_CTRL_SECONDARY_PROC        0x401E
 
 /* --- 32-bit Read-only --- */
+#define VMCS_VM_INSTRUCTION_ERROR       0x4400
 #define VMCS_EXIT_REASON                0x4402
 #define VMCS_EXIT_INTR_INFO             0x4404
 #define VMCS_EXIT_INTR_ERROR_CODE       0x4406
@@ -365,8 +369,10 @@ typedef struct _VMX_PROCESSOR_CTX {
     PVOID       VmxonRegion;
     PVOID       VmcsRegion;
     PVOID       HostStack;
+    PVOID       MsrBitmap;
     ULONG64     VmxonPhysical;
     ULONG64     VmcsPhysical;
+    ULONG64     MsrBitmapPhysical;
     BOOLEAN     Launched;
 } VMX_PROCESSOR_CTX, *PVMX_PROCESSOR_CTX;
 
@@ -408,7 +414,6 @@ UCHAR  AsmVmClear(ULONG64 *VmcsRegionPa);
 UCHAR  AsmVmPtrld(ULONG64 *VmcsRegionPa);
 ULONG64 AsmVmRead(ULONG64 Field);
 VOID   AsmVmWrite(ULONG64 Field, ULONG64 Value);
-UCHAR  AsmVmLaunch(VOID);
 VOID   AsmVmCall(ULONG64 HypercallNum, ULONG64 Arg1);
 
 /* 缓存无效化 */

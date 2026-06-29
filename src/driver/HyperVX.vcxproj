@@ -130,6 +130,7 @@
     <ClCompile Include="main.c" />
     <ClCompile Include="memory\mm_copy.c" />
     <ClCompile Include="vmx\vmx.c" />
+    <ClCompile Include="vmx\vmexit.c" />
     <ClCompile Include="utils\log.c" />
     <ClCompile Include="utils\memory.c" />
   </ItemGroup>

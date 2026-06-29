@@ -151,6 +151,29 @@ VmxAllocateRegion(PULONG64 OutPhysical)
 }
 
 /* ------------------------------------------------------------------ */
+/*  辅助：设置 MSR Bitmap 中的拦截位                                  */
+/* ------------------------------------------------------------------ */
+
+static VOID
+VmxSetMsrIntercept(PVOID Bitmap, ULONG MsrIndex, BOOLEAN Read, BOOLEAN Write)
+{
+    PUCHAR bmp = (PUCHAR)Bitmap;
+    ULONG  byteOff, bitPos;
+
+    if (MsrIndex <= 0x1FFF) {
+        byteOff = MsrIndex / 8;
+        bitPos  = MsrIndex % 8;
+        if (Read)  bmp[byteOff] |= (UCHAR)(1 << bitPos);
+        if (Write) bmp[2048 + byteOff] |= (UCHAR)(1 << bitPos);
+    } else if (MsrIndex >= 0xC0000000 && MsrIndex <= 0xC0001FFF) {
+        byteOff = (MsrIndex - 0xC0000000) / 8;
+        bitPos  = (MsrIndex - 0xC0000000) % 8;
+        if (Read)  bmp[1024 + byteOff] |= (UCHAR)(1 << bitPos);
+        if (Write) bmp[3072 + byteOff] |= (UCHAR)(1 << bitPos);
+    }
+}
+
+/* ------------------------------------------------------------------ */
 /*  配置 VMCS 控制域                                                  */
 /* ------------------------------------------------------------------ */
 
@@ -407,6 +430,25 @@ VmxInitProcessor(
         return;
     }
 
+    /* 3b. 分配 MSR Bitmap (4KB, 全零=不拦截, 再选择性启用) */
+    {
+        PHYSICAL_ADDRESS maxAddr;
+        maxAddr.QuadPart = MAXULONG64;
+        procCtx->MsrBitmap = MmAllocateContiguousMemory(PAGE_SIZE, maxAddr);
+        if (!procCtx->MsrBitmap) {
+            HvLog(HV_LOG_ERROR, "CPU #%lu: MSR Bitmap 分配失败", cpuIndex);
+            return;
+        }
+        RtlZeroMemory(procCtx->MsrBitmap, PAGE_SIZE);
+        procCtx->MsrBitmapPhysical = MmGetPhysicalAddress(procCtx->MsrBitmap).QuadPart;
+
+        /* 拦截 IA32_FEATURE_CONTROL 读写 — 隐藏 VMX 存在 */
+        VmxSetMsrIntercept(procCtx->MsrBitmap, IA32_FEATURE_CONTROL, TRUE, TRUE);
+        /* 拦截所有 IA32_VMX_* MSR (0x480-0x490) — 读取注入 #GP */
+        for (ULONG msr = 0x480; msr <= 0x490; msr++)
+            VmxSetMsrIntercept(procCtx->MsrBitmap, msr, TRUE, TRUE);
+    }
+
     /* 4. 启用 CR4.VMXE */
     ULONG64 cr4 = AsmReadCr4();
     AsmWriteCr4(cr4 | (1ULL << 13));
@@ -435,6 +477,7 @@ VmxInitProcessor(
 
     /* 7. 配置 VMCS */
     VmxSetupControlFields();
+    AsmVmWrite(VMCS_CTRL_MSR_BITMAP, procCtx->MsrBitmapPhysical);
     VmxSetupHostState(procCtx);
     VmxSetupGuestState();
 
@@ -489,6 +532,10 @@ VmxDeinitProcessor(
     if (procCtx->HostStack) {
         HvFree(procCtx->HostStack);
         procCtx->HostStack = NULL;
+    }
+    if (procCtx->MsrBitmap) {
+        MmFreeContiguousMemory(procCtx->MsrBitmap);
+        procCtx->MsrBitmap = NULL;
     }
 
     HvLog(HV_LOG_INFO, "CPU #%lu: VMX 已关闭", cpuIndex);
@@ -572,53 +619,4 @@ VmxDeinit(VOID)
     HvLog(HV_LOG_INFO, "VMX 全局卸载完成");
 }
 
-/* ------------------------------------------------------------------ */
-/*  VM-Exit 分发桩 (Phase 4 实现完整逻辑)                             */
-/*  返回 FALSE = vmresume, TRUE = 退出 VMX                            */
-/* ------------------------------------------------------------------ */
-
-BOOLEAN
-VmExitDispatch(PGUEST_CONTEXT GuestCtx)
-{
-    UNREFERENCED_PARAMETER(GuestCtx);
-
-    ULONG64 reason = AsmVmRead(VMCS_EXIT_REASON) & 0xFFFF;
-
-    switch (reason) {
-    case EXIT_REASON_VMCALL:
-        if (GuestCtx->Rcx == 0xDEAD) {
-            /* 关闭 VMX 请求 */
-            ULONG64 instrLen = AsmVmRead(VMCS_EXIT_INSTR_LEN);
-            ULONG64 rip = AsmVmRead(VMCS_GUEST_RIP);
-            AsmVmWrite(VMCS_GUEST_RIP, rip + instrLen);
-            return TRUE;
-        }
-        break;
-
-    case EXIT_REASON_CPUID:
-    {
-        int cpuInfo[4];
-        __cpuidex(cpuInfo, (int)GuestCtx->Rax, (int)GuestCtx->Rcx);
-        GuestCtx->Rax = cpuInfo[0];
-        GuestCtx->Rbx = cpuInfo[1];
-        GuestCtx->Rcx = cpuInfo[2];
-        GuestCtx->Rdx = cpuInfo[3];
-
-        ULONG64 instrLen = AsmVmRead(VMCS_EXIT_INSTR_LEN);
-        ULONG64 rip = AsmVmRead(VMCS_GUEST_RIP);
-        AsmVmWrite(VMCS_GUEST_RIP, rip + instrLen);
-        return FALSE;
-    }
-
-    default:
-        break;
-    }
-
-    /* 未处理的 exit → 推进 RIP 并继续 */
-    {
-        ULONG64 instrLen = AsmVmRead(VMCS_EXIT_INSTR_LEN);
-        ULONG64 rip = AsmVmRead(VMCS_GUEST_RIP);
-        AsmVmWrite(VMCS_GUEST_RIP, rip + instrLen);
-    }
-    return FALSE;
-}
+/* VmExitDispatch → 已迁移至 vmexit.c (Phase 4) */
