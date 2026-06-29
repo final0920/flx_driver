@@ -9,6 +9,9 @@
 *.ilk
 *.res
 
+# Build
+build/
+
 # Visual Studio
 .vs/
 *.user

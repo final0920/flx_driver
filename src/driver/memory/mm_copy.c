@@ -18,6 +18,15 @@ MmCopyVirtualMemory(
     _Out_ PSIZE_T         ReturnSize
 );
 
+/* ntifs.h 中声明，此处手动导入避免 ntddk.h/ntifs.h 冲突 */
+NTKERNELAPI
+NTSTATUS
+NTAPI
+PsLookupProcessByProcessId(
+    _In_  HANDLE    ProcessId,
+    _Out_ PEPROCESS *Process
+);
+
 /* 返回进程 PEB 中的 ImageBaseAddress */
 NTKERNELAPI
 PVOID

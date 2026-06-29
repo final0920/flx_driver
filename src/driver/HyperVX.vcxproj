@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <!-- ============================================================ -->
+  <!--  平台配置                                                    -->
+  <!-- ============================================================ -->
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+
+  <!-- ============================================================ -->
+  <!--  全局属性                                                    -->
+  <!-- ============================================================ -->
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{3F5162F5-5C5C-4B6E-9CE2-0B9A8D64F3E1}</ProjectGuid>
+    <ProjectName>HyperVX</ProjectName>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+
+  <!-- ============================================================ -->
+  <!--  配置属性 - 以 DynamicLibrary 输出 .sys                     -->
+  <!--  WDK VSIX 未注册 VS2022，故用 v143 + 手动内核编译参数       -->
+  <!-- ============================================================ -->
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+
+  <!-- ============================================================ -->
+  <!--  WDK 路径 + 输出目录                                        -->
+  <!-- ============================================================ -->
+  <PropertyGroup>
+    <WdkVersion>10.0.19041.0</WdkVersion>
+    <WdkRoot>$(WindowsSdkDir)</WdkRoot>
+    <TargetExt>.sys</TargetExt>
+    <TargetName>HyperVX</TargetName>
+    <OutDir>$(SolutionDir)build\$(Configuration)\driver\</OutDir>
+    <IntDir>$(SolutionDir)build\$(Configuration)\driver\obj\</IntDir>
+    <GenerateManifest>false</GenerateManifest>
+  </PropertyGroup>
+
+  <!-- ============================================================ -->
+  <!--  编译器 / 链接器 - 公共内核模式配置                         -->
+  <!-- ============================================================ -->
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>
+        $(ProjectDir)inc;
+        $(WdkRoot)Include\$(WdkVersion)\km;
+        $(WdkRoot)Include\$(WdkVersion)\km\crt;
+        $(WdkRoot)Include\$(WdkVersion)\shared;
+        %(AdditionalIncludeDirectories)
+      </AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>
+        _AMD64_;AMD64;_WIN64;
+        NTDDI_VERSION=0x0A000008;
+        _WIN32_WINNT=0x0A00;
+        WINVER=0x0A00;WINNT=1;
+        UNICODE;_UNICODE;
+        POOL_NX_OPTIN=1;
+        DEPRECATE_DDK_FUNCTIONS=1;
+        %(PreprocessorDefinitions)
+      </PreprocessorDefinitions>
+      <AdditionalOptions>/kernel /utf-8 /Zc:preprocessor- %(AdditionalOptions)</AdditionalOptions>
+      <WarningLevel>Level4</WarningLevel>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <ExceptionHandling>false</ExceptionHandling>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <CompileAs>CompileAsC</CompileAs>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <SubSystem>Native</SubSystem>
+      <EntryPointSymbol>DriverEntry</EntryPointSymbol>
+      <AdditionalLibraryDirectories>
+        $(WdkRoot)Lib\$(WdkVersion)\km\x64;
+        %(AdditionalLibraryDirectories)
+      </AdditionalLibraryDirectories>
+      <AdditionalDependencies>ntoskrnl.lib;hal.lib;ntstrsafe.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
+      <AdditionalOptions>/DRIVER /INTEGRITYCHECK /MERGE:_TEXT=.text /MERGE:_PAGE=PAGE %(AdditionalOptions)</AdditionalOptions>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <!-- Debug 配置 -->
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>DBG=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+
+  <!-- Release 配置 -->
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+    </ClCompile>
+    <Link>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <!-- ============================================================ -->
+  <!--  源文件                                                      -->
+  <!-- ============================================================ -->
+  <ItemGroup>
+    <ClCompile Include="main.c" />
+    <ClCompile Include="memory\mm_copy.c" />
+    <ClCompile Include="utils\log.c" />
+    <ClCompile Include="utils\memory.c" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ClInclude Include="inc\common.h" />
+  </ItemGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+
+</Project>
