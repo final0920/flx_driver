@@ -376,12 +376,15 @@ typedef struct _VMX_PROCESSOR_CTX {
     BOOLEAN     Launched;
 } VMX_PROCESSOR_CTX, *PVMX_PROCESSOR_CTX;
 
+struct _EPT_STATE;  /* ept.h 完整定义 */
+
 typedef struct _VMX_STATE {
-    PVMX_PROCESSOR_CTX Processors;
-    ULONG              ProcessorCount;
-    ULONG              VmcsRevisionId;
-    BOOLEAN            EptSupported;
-    BOOLEAN            VpidSupported;
+    PVMX_PROCESSOR_CTX  Processors;
+    struct _EPT_STATE  *Ept;
+    ULONG               ProcessorCount;
+    ULONG               VmcsRevisionId;
+    BOOLEAN              EptSupported;
+    BOOLEAN              VpidSupported;
 } VMX_STATE, *PVMX_STATE;
 
 /* ------------------------------------------------------------------ */

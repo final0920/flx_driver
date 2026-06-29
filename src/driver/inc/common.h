@@ -98,3 +98,4 @@ VOID  HvFree(_In_opt_ PVOID Ptr);
 /* ------------------------------------------------------------------ */
 
 #include "vmx.h"
+#include "ept.h"

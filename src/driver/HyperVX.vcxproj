@@ -131,6 +131,7 @@
     <ClCompile Include="memory\mm_copy.c" />
     <ClCompile Include="vmx\vmx.c" />
     <ClCompile Include="vmx\vmexit.c" />
+    <ClCompile Include="vmx\ept.c" />
     <ClCompile Include="utils\log.c" />
     <ClCompile Include="utils\memory.c" />
   </ItemGroup>
@@ -142,6 +143,7 @@
   <ItemGroup>
     <ClInclude Include="inc\common.h" />
     <ClInclude Include="inc\vmx.h" />
+    <ClInclude Include="inc\ept.h" />
   </ItemGroup>
 
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

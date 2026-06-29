@@ -241,8 +241,9 @@ VmxSetupControlFields(VOID)
     /* VPID = 1 (所有 Guest 共用) */
     AsmVmWrite(VMCS_CTRL_VPID, 1);
 
-    /* EPT Pointer: Phase 5 填充，暂置 0 */
-    AsmVmWrite(VMCS_CTRL_EPT_POINTER, 0);
+    /* EPT Pointer (Phase 5) */
+    if (g_VmxState.Ept)
+        AsmVmWrite(VMCS_CTRL_EPT_POINTER, g_VmxState.Ept->Eptp);
 
     /* CR3 Target Count = 0 */
     AsmVmWrite(VMCS_CTRL_CR3_TARGET_COUNT, 0);
@@ -561,6 +562,21 @@ VmxInit(VOID)
     RtlZeroMemory(g_VmxState.Processors,
                   g_VmxState.ProcessorCount * sizeof(VMX_PROCESSOR_CTX));
 
+    /* EPT 初始化 (全核共享) */
+    if (g_VmxState.EptSupported) {
+        g_VmxState.Ept = (PEPT_STATE)HvAllocate(sizeof(EPT_STATE));
+        if (!g_VmxState.Ept)
+            return STATUS_INSUFFICIENT_RESOURCES;
+
+        NTSTATUS eptStatus = EptInit(g_VmxState.Ept);
+        if (!NT_SUCCESS(eptStatus)) {
+            HvLog(HV_LOG_ERROR, "EPT 初始化失败: 0x%08X", eptStatus);
+            HvFree(g_VmxState.Ept);
+            g_VmxState.Ept = NULL;
+            return eptStatus;
+        }
+    }
+
     HvLog(HV_LOG_INFO, "开始 VMX 初始化，共 %lu 核", g_VmxState.ProcessorCount);
 
     /* 在每个 CPU 上执行初始化 */
@@ -615,6 +631,13 @@ VmxDeinit(VOID)
 
     HvFree(g_VmxState.Processors);
     g_VmxState.Processors = NULL;
+
+    /* EPT 销毁 */
+    if (g_VmxState.Ept) {
+        EptDeinit(g_VmxState.Ept);
+        HvFree(g_VmxState.Ept);
+        g_VmxState.Ept = NULL;
+    }
 
     HvLog(HV_LOG_INFO, "VMX 全局卸载完成");
 }
