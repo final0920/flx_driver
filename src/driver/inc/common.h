@@ -92,3 +92,9 @@ HvGetProcessBase(
 
 PVOID HvAllocate(_In_ SIZE_T Size);
 VOID  HvFree(_In_opt_ PVOID Ptr);
+
+/* ------------------------------------------------------------------ */
+/*  vmx/ - VT-x 核心 (Phase 3)                                       */
+/* ------------------------------------------------------------------ */
+
+#include "vmx.h"

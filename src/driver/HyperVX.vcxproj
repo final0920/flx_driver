@@ -38,6 +38,9 @@
 
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
 
+  <!-- MASM 汇编支持 -->
+  <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.props" />
+
   <!-- ============================================================ -->
   <!--  WDK 路径 + 输出目录                                        -->
   <!-- ============================================================ -->
@@ -126,14 +129,21 @@
   <ItemGroup>
     <ClCompile Include="main.c" />
     <ClCompile Include="memory\mm_copy.c" />
+    <ClCompile Include="vmx\vmx.c" />
     <ClCompile Include="utils\log.c" />
     <ClCompile Include="utils\memory.c" />
   </ItemGroup>
 
   <ItemGroup>
+    <MASM Include="vmx\asm.asm" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ClInclude Include="inc\common.h" />
+    <ClInclude Include="inc\vmx.h" />
   </ItemGroup>
 
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.targets" />
 
 </Project>
