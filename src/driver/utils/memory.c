@@ -1,15 +1,19 @@
 #include "../inc/common.h"
 
 /* ------------------------------------------------------------------ */
-/*  池分配辅助  -  带标签的 NonPagedPool 封装                         */
-/*  ExAllocatePool2 默认零初始化（Win10 2004+）                       */
+/*  池分配辅助  -  带标签的 NonPagedPool 封装 (Win7+ 兼容)            */
 /* ------------------------------------------------------------------ */
 
+#pragma warning(push)
+#pragma warning(disable: 4996) /* ExAllocatePoolWithTag 在新 WDK 标记废弃 */
 PVOID
 HvAllocate(_In_ SIZE_T Size)
 {
-    return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, HV_POOL_TAG);
+    PVOID p = ExAllocatePoolWithTag(NonPagedPool, Size, HV_POOL_TAG);
+    if (p) RtlZeroMemory(p, Size);
+    return p;
 }
+#pragma warning(pop)
 
 VOID
 HvFree(_In_opt_ PVOID Ptr)

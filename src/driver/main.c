@@ -4,7 +4,8 @@
 /*  全局变量                                                          */
 /* ------------------------------------------------------------------ */
 
-static PDEVICE_OBJECT g_DeviceObject = NULL;
+static PDEVICE_OBJECT g_DeviceObject   = NULL;
+static BOOLEAN        g_VmxInitialized = FALSE;
 
 /* ------------------------------------------------------------------ */
 /*  前向声明                                                          */
@@ -148,6 +149,12 @@ HvDriverUnload(_In_ PDRIVER_OBJECT Drv)
 {
     UNREFERENCED_PARAMETER(Drv);
 
+    if (g_VmxInitialized) {
+        VmxDeinit();
+        g_VmxInitialized = FALSE;
+        HvLog(HV_LOG_INFO, "VMX 已关闭");
+    }
+
     UNICODE_STRING SymLink = RTL_CONSTANT_STRING(HV_SYMBOLIC_LINK);
     IoDeleteSymbolicLink(&SymLink);
 
@@ -202,7 +209,17 @@ DriverEntry(
     g_DeviceObject->Flags |= DO_BUFFERED_IO;
     g_DeviceObject->Flags &= ~DO_DEVICE_INITIALIZING;
 
-    HvLog(HV_LOG_INFO, "HyperVX driver loaded  (DevObj=%p)", g_DeviceObject);
+    /* --- 初始化 VT-x Hypervisor（失败不阻止 IOCTL 功能） ------------ */
+    Status = VmxInit();
+    if (NT_SUCCESS(Status)) {
+        g_VmxInitialized = TRUE;
+        HvLog(HV_LOG_INFO, "VMX 初始化成功 - Hypervisor 已激活");
+    } else {
+        HvLog(HV_LOG_WARN, "VMX 初始化失败: 0x%08X (IOCTL 功能仍可用)", Status);
+    }
+
+    HvLog(HV_LOG_INFO, "HyperVX driver loaded  (DevObj=%p, VMX=%s)",
+          g_DeviceObject, g_VmxInitialized ? "ON" : "OFF");
     return STATUS_SUCCESS;
 
 Fail:
